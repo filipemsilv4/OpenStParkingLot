@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "openstparkinglot"
+version = "0.1.0"
+description = ""
+authors = ["filipemsilv4 <filipemsilva@outlook.com.br>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "~3.12"
+streamlit = "^1.39.0"
+pymongo = "^4.10.1"
+streamlit-authenticator = "^0.4.1"
+streamlit-keyup = "^0.2.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
