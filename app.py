@@ -3,11 +3,69 @@ from pymongo import MongoClient
 from datetime import datetime, timedelta
 import pandas as pd
 from st_keyup import st_keyup
+import os
+import toml
+import sys
 
 # Configuração da página
 st.set_page_config(page_title="Controle de Estacionamento", layout="wide")
 
-# Dicionário de tipos de veículos e seus emojis
+# Função para salvar a string de conexão no secrets.toml
+def save_connection_string(connection_string):
+    try:
+        # Obter o diretório do projeto (onde está o arquivo atual)
+        project_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Caminho para o diretório .streamlit no projeto
+        streamlit_dir = os.path.join(project_dir, ".streamlit")
+        secrets_path = os.path.join(streamlit_dir, "secrets.toml")
+        
+        # Criar diretório .streamlit se não existir
+        os.makedirs(streamlit_dir, exist_ok=True)
+        
+        # Carregar configurações existentes ou criar novo dict
+        if os.path.exists(secrets_path):
+            secrets = toml.load(secrets_path)
+        else:
+            secrets = {}
+        
+        # Atualizar ou criar seção mongo
+        if 'mongo' not in secrets:
+            secrets['mongo'] = {}
+        secrets['mongo']['uri'] = connection_string
+        
+        # Salvar arquivo
+        with open(secrets_path, "w") as f:
+            toml.dump(secrets, f)
+        
+        st.success(f"Arquivo secrets.toml criado/atualizado em: {secrets_path}")
+        return True
+    except Exception as e:
+        st.error(f"Erro ao salvar string de conexão: {e}")
+        return False
+
+# Formulário de conexão
+def show_connection_form():
+    st.error("Não foi possível conectar ao MongoDB. Por favor, forneça uma string de conexão válida.")
+    
+    with st.form("connection_form"):
+        connection_string = st.text_input(
+            "String de conexão MongoDB:",
+            type="password",
+            help="Formato: mongodb://username:password@host:port/database"
+        )
+        submitted = st.form_submit_button("Conectar")
+        
+        if submitted and connection_string:
+            if save_connection_string(connection_string):
+                st.session_state.connection_tried = True
+                st.success("String de conexão salva com sucesso! Por favor, reinicie a aplicação manualmente (Ctrl+C e execute novamente).")
+                st.stop()
+                
+# Chave de controle para o estado da conexão
+if 'connection_tried' not in st.session_state:
+    st.session_state.connection_tried = False
+
 TIPOS_VEICULOS = {
     "Carro": "🚗",
     "Moto": "🏍️",
@@ -16,7 +74,6 @@ TIPOS_VEICULOS = {
     "Bicicleta": "🚲"
 }
 
-# Inicializar preços no session_state se não existirem
 if 'PRECO_POR_HORA' not in st.session_state:
     st.session_state.PRECO_POR_HORA = {
         "Carro": 10.0,
@@ -26,18 +83,26 @@ if 'PRECO_POR_HORA' not in st.session_state:
         "Bicicleta": 2.0
     }
 
-# Conectar ao MongoDB
-@st.cache_resource
+# Função de conexão
 def init_connection():
+    if "mongo" not in st.secrets:
+        raise Exception("Configuração do MongoDB não encontrada")
     return MongoClient(st.secrets["mongo"]["uri"])
 
+# Tentar estabelecer conexão
 try:
+    if st.session_state.connection_tried:
+        st.warning("Por favor, reinicie a aplicação manualmente para aplicar a nova configuração.")
+        st.stop()
+        
     client = init_connection()
+    # Testar a conexão
+    client.server_info()
     db = client.estacionamento
     collection = db.veiculos
     config_collection = db.configuracoes
 except Exception as e:
-    st.error(f"Erro ao conectar ao MongoDB: {e}")
+    show_connection_form()
     st.stop()
 
 # Carregar configurações do banco de dados
