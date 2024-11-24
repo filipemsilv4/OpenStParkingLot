@@ -36,3 +36,13 @@ def registrar_saida(collection, veiculo_id, entrada, saida, tipo_veiculo, valor_
         }
     )
     return f"Saída registrada. Valor cobrado: R$ {valor_cobrado:.2f}"
+
+def remover_veiculo(collection, veiculo_id):
+    try:
+        result = collection.delete_one({"_id": veiculo_id})
+        if result.deleted_count == 1:
+            return "Veículo removido com sucesso!"
+        else:
+            return "Veículo não encontrado ou não pôde ser removido."
+    except Exception as e:
+        return f"Ocorreu um erro ao remover o veículo: {e}"

@@ -7,7 +7,7 @@ from st_keyup import st_keyup
 import os
 
 from config.connection import save_connection_string, init_connection
-from controllers.vehicle_controller import registrar_entrada, preparar_saida, registrar_saida
+from controllers.vehicle_controller import registrar_entrada, preparar_saida, registrar_saida, remover_veiculo
 from controllers.pricing_controller import load_config, save_config
 from models.vehicle import normalize_vehicle_data
 from utils.helpers import calcular_valor
@@ -219,6 +219,19 @@ with tab3:
                 st.write(f"Saída: {veiculo['saida'].strftime('%d/%m/%Y %H:%M:%S')}")
                 valor = veiculo.get('valor_cobrado', 0.0)
                 st.write(f"Valor cobrado: R$ {valor:.2f}")
+
+                # Remoção de veículo
+                confirma_remover = st.text_input(
+                    "Digite 'CONFIRMAR' para remover este veículo do histórico:",
+                    key=f"remover_{veiculo['_id']}"
+                )
+                if st.button("Remover Veículo", key=f"btn_remover_{veiculo['_id']}", type="primary"):
+                    if confirma_remover == "CONFIRMAR":
+                        message = remover_veiculo(collection, veiculo['_id'])
+                        st.success(message)
+                        st.rerun()
+                    else:
+                        st.error("Por favor, digite 'CONFIRMAR' para remover o veículo.")
     else:
         st.info("Nenhum registro encontrado no histórico.")
 
