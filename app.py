@@ -5,9 +5,12 @@ from datetime import datetime, timedelta
 import pandas as pd
 from st_keyup import st_keyup
 import os
-
-from config.connection import save_connection_string, init_connection
-from controllers.vehicle_controller import registrar_entrada, preparar_saida, registrar_saida, remover_veiculo
+from controllers.vehicle_controller import (
+    registrar_entrada,
+    preparar_saida,
+    registrar_saida,
+    remover_veiculo
+)
 from controllers.pricing_controller import load_config, save_config
 from models.vehicle import normalize_vehicle_data
 from utils.helpers import calcular_valor
@@ -22,17 +25,12 @@ TIPOS_VEICULOS = {
     "Bicicleta": "🚲"
 }
 
-if 'PRECO_POR_HORA' not in st.session_state:
-    st.session_state.PRECO_POR_HORA = {
-        "Carro": 10.0,
-        "Moto": 5.0,
-        "Caminhão": 15.0,
-        "Van": 12.0,
-        "Bicicleta": 2.0
-    }
-
 def show_connection_form():
-    st.error("Não foi possível conectar ao MongoDB. Por favor, forneça uma string de conexão válida.")
+    """
+    Exibe um formulário para o usuário inserir a string de conexão do MongoDB
+    e salva essa string em st.session_state.
+    """
+    st.error("Não foi possível conectar ao MongoDB. Forneça a URI:")
 
     with st.form("connection_form"):
         connection_string = st.text_input(
@@ -43,28 +41,51 @@ def show_connection_form():
         submitted = st.form_submit_button("Conectar")
 
         if submitted and connection_string:
-            if save_connection_string(connection_string):
-                st.session_state.connection_tried = True
-                st.success("String de conexão salva com sucesso! Por favor, reinicie a aplicação manualmente (Ctrl+C e execute novamente).")
-                st.stop()
+            st.session_state.connection_string = connection_string
+            st.success("String de conexão salva. Tentando reconectar...")
+            st.rerun()
 
+def init_connection():
+    """
+    Lê a string de conexão do st.session_state e inicializa o MongoClient.
+    """
+    mongo_uri = st.session_state.get("connection_string")
+    if not mongo_uri:
+        raise ValueError("String de conexão não configurada em st.session_state.")
+    return MongoClient(mongo_uri)
+
+# Inicializa estados necessários
 if 'connection_tried' not in st.session_state:
     st.session_state.connection_tried = False
 
-try:
-    if st.session_state.connection_tried:
-        st.warning("Por favor, reinicie a aplicação manualmente para aplicar a nova configuração.")
-        st.stop()
+if 'PRECO_POR_HORA' not in st.session_state:
+    st.session_state.PRECO_POR_HORA = {
+        "Carro": 10.0,
+        "Moto": 5.0,
+        "Caminhão": 15.0,
+        "Van": 12.0,
+        "Bicicleta": 2.0
+    }
 
+# Tenta conectar ao MongoDB com a URI armazenada
+try:
+    client = init_connection()  # Usa st.session_state.connection_string
+    client.server_info()        # Verifica conexão
+
+    # Inicia a conexão com o MongoDB usando a string guardada em session_state
     client = init_connection()
-    client.server_info()
+    client.server_info()  # Verifica se a conexão funciona
+
     db = client.estacionamento
     collection = db.veiculos
     config_collection = db.configuracoes
+
 except Exception as e:
+    # Se der erro, mostra o formulário para inserir nova URI
     show_connection_form()
     st.stop()
 
+# Carrega as configurações de preços (de dentro do MongoDB, por exemplo)
 load_config(config_collection)
 
 if 'last_plate' not in st.session_state:
