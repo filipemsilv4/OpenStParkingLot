@@ -26,23 +26,41 @@ TIPOS_VEICULOS = {
 
 def show_connection_form():
     """
-    Exibe um formulário para o usuário inserir a string de conexão do MongoDB
-    e salva essa string em st.session_state.
+    Exibe um formulário intuitivo e informativo para o usuário inserir a string de conexão do MongoDB,
+    direcionando-o para o passo a passo detalhado no README do repositório e salvando essa string em st.session_state.
+    Utiliza apenas componentes do Streamlit para manter a consistência visual.
     """
-    st.error("Não foi possível conectar ao MongoDB. Forneça a URI válida abaixo.")
+
+    st.subheader("Como obter sua String de Conexão MongoDB:", divider="gray")
+
+    st.markdown("""
+        Para usar o sistema, é necessário configurar o MongoDB e obter a string de conexão (URI). 
+        Siga o guia detalhado no README do repositório desse app no github para criar sua conta, cluster, 
+        usuário e permissões necessárias para estabelecer a conexão.
+        [Clique aqui para acessar o passo a passo no GitHub](https://github.com/filipemsilv4/OpenStParkingLot).
+    """)
+
+    st.markdown("""
+        Após a configuração, a string de conexão terá um formato similar a este:
+        ```
+        mongodb+srv://<seu_nome_de_usuario>:<sua_senha>@<seu_cluster>.mongodb.net/...
+        ```
+    """)
 
     with st.form("connection_form"):
         connection_string = st.text_input(
-            "String de conexão MongoDB:",
+            "Insira sua String de Conexão MongoDB:",
             type="password",
-            help="Exemplo: mongodb://usuario:senha@host:27017/banco"
+            help="Cole aqui a string de conexão obtida do MongoDB Atlas."
         )
-        submitted = st.form_submit_button("Conectar")
+        
 
+        submitted = st.form_submit_button("Conectar")
+            
         if submitted:
             if connection_string.strip():
                 st.session_state.connection_string = connection_string.strip()
-                st.success("String de conexão salva. Tentando reconectar...")
+                st.success("String de conexão salva com sucesso! Tentando reconectar...")
                 st.rerun()
             else:
                 st.error("A string de conexão não pode estar vazia.")
@@ -302,7 +320,7 @@ with tab3:
                     "Digite 'CONFIRMAR' para remover este veículo do histórico:",
                     key=f"remover_{veiculo['_id']}"
                 )
-                if st.button(f"Remover Veículo {veiculo['_id']}", key=f"btn_remover_{veiculo['_id']}", type="primary"):
+                if st.button(f"Remover Veículo {veiculo['placa']}", key=f"btn_remover_{veiculo['_id']}", type="primary"):
                     if confirma_remover == "CONFIRMAR":
                         try:
                             message = remover_veiculo(collection, veiculo['_id'])
